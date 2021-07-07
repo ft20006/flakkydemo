@@ -1,0 +1,181 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  AWSServiceRoleForAmazonEKS:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKSServicePolicy'
+        - 'arn:aws:iam::aws:policy/AmazonEKSClusterPolicy'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 5e4b4938-3c69-4801-a3e2-58852a2e4d21
+  NodeInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy'
+        - 'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy'
+        - 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 0d1539d6-5105-4d9d-b631-fc356393dbbf
+  ECSInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument: |
+        {
+          "Statement": [{
+            "Action": "sts:AssumeRole",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "ec2.amazonaws.com"
+            }
+          }]
+        }
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument: |
+            {
+              "Statement": [{
+                "Effect": "Allow",
+                "Action": [
+                  "ecs:CreateCluster",
+                  "ecs:DeregisterContainerInstance",
+                  "ecs:DiscoverPollEndpoint",
+                  "ecs:Poll",
+                  "ecs:RegisterContainerInstance",
+                  "ecs:StartTelemetrySession",
+                  "ecs:Submit*",
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents",
+                  "ecr:BatchCheckLayerAvailability",
+                  "ecr:BatchGetImage",
+                  "ecr:GetDownloadUrlForLayer",
+                  "ecr:GetAuthorizationToken",
+                  "ssm:DescribeAssociation",
+                  "ssm:GetDeployablePatchSnapshotForInstance",
+                  "ssm:GetDocument",
+                  "ssm:GetManifest",
+                  "ssm:GetParameters",
+                  "ssm:ListAssociations",
+                  "ssm:ListInstanceAssociations",
+                  "ssm:PutInventory",
+                  "ssm:PutComplianceItems",
+                  "ssm:PutConfigurePackageResult",
+                  "ssm:UpdateAssociationStatus",
+                  "ssm:UpdateInstanceAssociationStatus",
+                  "ssm:UpdateInstanceInformation",
+                  "ec2messages:AcknowledgeMessage",
+                  "ec2messages:DeleteMessage",
+                  "ec2messages:FailMessage",
+                  "ec2messages:GetEndpoint",
+                  "ec2messages:GetMessages",
+                  "ec2messages:SendReply",
+                  "cloudwatch:PutMetricData",
+                  "ec2:DescribeInstanceStatus",
+                  "ds:CreateComputer",
+                  "ds:DescribeDirectories",
+                  "logs:CreateLogGroup",
+                  "logs:CreateLogStream",
+                  "logs:DescribeLogGroups",
+                  "logs:DescribeLogStreams",
+                  "logs:PutLogEvents",
+                  "s3:PutObject",
+                  "s3:GetObject",
+                  "s3:AbortMultipartUpload",
+                  "s3:ListMultipartUploadParts",
+                  "s3:ListBucket",
+                  "s3:ListBucketMultipartUploads"
+                ],
+                "Resource": "*"
+              }]
+            }
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 9f759650-94be-43d3-ad82-0a506bdf4111
+  ECSServiceAutoScalingRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action:
+            - 'sts:AssumeRole'
+          Effect: Allow
+          Principal:
+            Service:
+              - application-autoscaling.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyName: ecs-service-autoscaling
+          PolicyDocument:
+            Statement:
+              Effect: Allow
+              Action:
+                - 'application-autoscaling:*'
+                - 'cloudwatch:DescribeAlarms'
+                - 'cloudwatch:PutMetricAlarm'
+                - 'ecs:DescribeServices'
+                - 'ecs:UpdateService'
+              Resource: '*'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 2ad4743b-ca47-48cc-bb8b-a268d8535cd1
+  TaskIamRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument: |
+        {
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ]},
+                "Action": [ "sts:AssumeRole" ]
+            }]
+        }
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchFullAccess'
+        - 'arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess'
+        - 'arn:aws:iam::aws:policy/AWSAppMeshEnvoyAccess'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 50104e27-1166-41e8-a4bb-0c1c93f9cd3d
+  TaskExecutionIamRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument: |
+        {
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ]},
+                "Action": [ "sts:AssumeRole" ]
+            }]
+        }
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly'
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 493a2908-f36f-4c20-961c-9bc4f397976d
